@@ -60,6 +60,7 @@ class SearchRepositoriesActivity : AppCompatActivity() {
         if (viewModel.livePagingData?.value == null) {
             viewModel.searchRepo(query)
         }
+        binding.list.adapter = adapter
 
         initAdapter()
         initSearch(query)
@@ -71,8 +72,6 @@ class SearchRepositoriesActivity : AppCompatActivity() {
     }
 
     private fun initAdapter() {
-        binding.list.adapter = adapter
-
         viewModel.livePagingData?.observe(this) { pagingData ->
             adapter.submitData(lifecycle, pagingData)
         }
@@ -105,6 +104,7 @@ class SearchRepositoriesActivity : AppCompatActivity() {
                 binding.list.scrollToPosition(0)
                 adapter.submitData( lifecycle, PagingData.empty())
                 viewModel.searchRepo(it.toString())
+                initAdapter()
             }
         }
     }
