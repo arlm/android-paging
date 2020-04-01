@@ -19,20 +19,18 @@ package com.example.android.codelabs.paging.ui
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.android.codelabs.paging.data.GithubRepository
 
 /**
  * Factory for ViewModels
  */
 class ViewModelFactory(
-        private val repository: GithubRepository,
         private val context: Context
 ) : ViewModelProvider.Factory {
 
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(SearchRepositoriesViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return SearchRepositoriesViewModel(repository, context) as T
+            return SearchRepositoriesViewModel(context) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class")
     }

@@ -17,19 +17,18 @@
 package com.example.android.codelabs.paging.ui
 
 import android.content.Context
-import androidx.lifecycle.*
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import androidx.paging.LivePagingData
 import androidx.paging.PagingConfig
 import androidx.paging.PagingData
 import androidx.paging.cachedIn
 import com.example.android.codelabs.paging.api.GithubService
 import com.example.android.codelabs.paging.data.GithubPagingSource
-import com.example.android.codelabs.paging.data.GithubRepository
 import com.example.android.codelabs.paging.model.Repo
-import com.example.android.codelabs.paging.model.RepoSearchResult
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.launch
 
 /**
@@ -38,7 +37,6 @@ import kotlinx.coroutines.launch
  */
 @ExperimentalCoroutinesApi
 class SearchRepositoriesViewModel(
-        private val repository: GithubRepository,
         private val context: Context
 ) : ViewModel() {
 
@@ -47,36 +45,27 @@ class SearchRepositoriesViewModel(
     }
 
     private lateinit var queryString: String
-    private val queryLiveData = MutableLiveData<String>()
-
-    val repoResult: LiveData<RepoSearchResult> = queryLiveData.switchMap { queryString ->
-        liveData {
-            val repos = repository.getSearchResultStream(queryString).asLiveData(Dispatchers.Main)
-            emitSource(repos)
-        }
-    }
 
     /**
      * Search a repository based on a query string.
      */
     fun searchRepo(queryString: String) {
-        queryLiveData.postValue(queryString)
-        this.queryString = queryString
+        livePagingData = LivePagingData(
+                PagingConfig(GithubPagingSource.NETWORK_PAGE_SIZE)
+        ) { GithubPagingSource(GithubService.create(), queryString, context) }
+                .cachedIn(viewModelScope)
     }
 
     fun listScrolled(visibleItemCount: Int, lastVisibleItemPosition: Int, totalItemCount: Int) {
         if (visibleItemCount + lastVisibleItemPosition + VISIBLE_THRESHOLD >= totalItemCount) {
-            val immutableQuery = queryLiveData.value
+            val immutableQuery = livePagingData?.value
             if (immutableQuery != null) {
                 viewModelScope.launch {
-                    repository.requestMore(immutableQuery)
+                    //repository.requestMore(immutableQuery)
                 }
             }
         }
     }
 
-    val livePagingData : LiveData<PagingData<Repo>> = LivePagingData(
-            PagingConfig(GithubPagingSource.NETWORK_PAGE_SIZE)
-    ) { GithubPagingSource(GithubService.create(), queryString, context) }
-            .cachedIn(viewModelScope)
+    var livePagingData : LiveData<PagingData<Repo>>? = null
 }

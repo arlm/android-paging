@@ -24,6 +24,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.observe
+import androidx.paging.PagingData
 import androidx.recyclerview.widget.DividerItemDecoration
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -55,11 +56,12 @@ class SearchRepositoriesActivity : AppCompatActivity() {
         binding.list.addItemDecoration(decoration)
         setupScrollListener()
 
-        initAdapter()
         val query = savedInstanceState?.getString(LAST_SEARCH_QUERY) ?: DEFAULT_QUERY
-        if (viewModel.livePagingData.value == null) {
+        if (viewModel.livePagingData?.value == null) {
             viewModel.searchRepo(query)
         }
+
+        initAdapter()
         initSearch(query)
     }
 
@@ -71,7 +73,7 @@ class SearchRepositoriesActivity : AppCompatActivity() {
     private fun initAdapter() {
         binding.list.adapter = adapter
 
-        viewModel.livePagingData.observe(this) { pagingData ->
+        viewModel.livePagingData?.observe(this) { pagingData ->
             adapter.submitData(lifecycle, pagingData)
         }
     }
@@ -100,9 +102,9 @@ class SearchRepositoriesActivity : AppCompatActivity() {
     private fun updateRepoListFromInput() {
         binding.searchRepo.text.trim().let {
             if (it.isNotEmpty()) {
-                //  binding.list.scrollToPosition(0)
+                binding.list.scrollToPosition(0)
+                adapter.submitData( lifecycle, PagingData.empty())
                 viewModel.searchRepo(it.toString())
-                //adapter.submitList(null)
             }
         }
     }
