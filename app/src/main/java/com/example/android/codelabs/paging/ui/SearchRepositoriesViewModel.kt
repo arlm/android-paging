@@ -16,8 +16,16 @@
 
 package com.example.android.codelabs.paging.ui
 
+import android.content.Context
 import androidx.lifecycle.*
+import androidx.paging.LivePagingData
+import androidx.paging.PagingConfig
+import androidx.paging.PagingData
+import androidx.paging.cachedIn
+import com.example.android.codelabs.paging.api.GithubService
+import com.example.android.codelabs.paging.data.GithubPagingSource
 import com.example.android.codelabs.paging.data.GithubRepository
+import com.example.android.codelabs.paging.model.Repo
 import com.example.android.codelabs.paging.model.RepoSearchResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -29,13 +37,18 @@ import kotlinx.coroutines.launch
  * The ViewModel works with the [GithubRepository] to get the data.
  */
 @ExperimentalCoroutinesApi
-class SearchRepositoriesViewModel(private val repository: GithubRepository) : ViewModel() {
+class SearchRepositoriesViewModel(
+        private val repository: GithubRepository,
+        private val context: Context
+) : ViewModel() {
 
     companion object {
         private const val VISIBLE_THRESHOLD = 5
     }
 
+    private lateinit var queryString: String
     private val queryLiveData = MutableLiveData<String>()
+
     val repoResult: LiveData<RepoSearchResult> = queryLiveData.switchMap { queryString ->
         liveData {
             val repos = repository.getSearchResultStream(queryString).asLiveData(Dispatchers.Main)
@@ -48,6 +61,7 @@ class SearchRepositoriesViewModel(private val repository: GithubRepository) : Vi
      */
     fun searchRepo(queryString: String) {
         queryLiveData.postValue(queryString)
+        this.queryString = queryString
     }
 
     fun listScrolled(visibleItemCount: Int, lastVisibleItemPosition: Int, totalItemCount: Int) {
@@ -60,4 +74,9 @@ class SearchRepositoriesViewModel(private val repository: GithubRepository) : Vi
             }
         }
     }
+
+    val livePagingData : LiveData<PagingData<Repo>> = LivePagingData(
+            PagingConfig(GithubPagingSource.NETWORK_PAGE_SIZE)
+    ) { GithubPagingSource(GithubService.create(), queryString, context) }
+            .cachedIn(viewModelScope)
 }
