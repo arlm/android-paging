@@ -34,8 +34,8 @@ class GithubPagingSource (
 
                     LoadResult.Page(
                             data = reposByName,
-                            prevKey = lastPage,
-                            nextKey = nextPage
+                            prevKey = null,
+                            nextKey = null
                     )
                 } else  {
                     Log.d("GithubRepository", "fail to get data")
