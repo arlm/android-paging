@@ -23,6 +23,7 @@ import android.view.inputmethod.EditorInfo
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.observe
 import androidx.paging.PagingData
 import androidx.recyclerview.widget.DividerItemDecoration
@@ -33,6 +34,8 @@ import com.example.android.codelabs.paging.Injection
 import com.example.android.codelabs.paging.databinding.ActivitySearchRepositoriesBinding
 import com.example.android.codelabs.paging.model.RepoSearchResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 
 @ExperimentalCoroutinesApi
 class SearchRepositoriesActivity : AppCompatActivity() {
@@ -57,9 +60,7 @@ class SearchRepositoriesActivity : AppCompatActivity() {
         setupScrollListener()
 
         val query = savedInstanceState?.getString(LAST_SEARCH_QUERY) ?: DEFAULT_QUERY
-        if (viewModel.livePagingData?.value == null) {
-            viewModel.searchRepo(query)
-        }
+        viewModel.searchRepo(query)
         binding.list.adapter = adapter
 
         initAdapter()
@@ -72,8 +73,10 @@ class SearchRepositoriesActivity : AppCompatActivity() {
     }
 
     private fun initAdapter() {
-        viewModel.livePagingData?.observe(this) { pagingData ->
-            adapter.submitData(lifecycle, pagingData)
+        lifecycleScope.launch {
+            viewModel.pagingDataFlow?.collectLatest { pagingData ->
+                        adapter.presentData(pagingData)
+                    }
         }
     }
 

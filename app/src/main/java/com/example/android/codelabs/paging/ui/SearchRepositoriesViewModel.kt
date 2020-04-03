@@ -21,14 +21,13 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import androidx.paging.LivePagingData
-import androidx.paging.PagingConfig
-import androidx.paging.PagingData
-import androidx.paging.cachedIn
+import androidx.paging.*
 import com.example.android.codelabs.paging.api.GithubService
 import com.example.android.codelabs.paging.data.GithubPagingSource
 import com.example.android.codelabs.paging.model.Repo
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.count
 import kotlinx.coroutines.launch
 
 /**
@@ -50,22 +49,16 @@ class SearchRepositoriesViewModel(
      * Search a repository based on a query string.
      */
     fun searchRepo(queryString: String) {
-        livePagingData = LivePagingData(
+        pagingDataFlow = PagingDataFlow(
                 PagingConfig(GithubPagingSource.NETWORK_PAGE_SIZE)
-        ) { GithubPagingSource(GithubService.create(), queryString, context) }
+        ) {  GithubPagingSource(GithubService.create(), queryString, context) }
                 .cachedIn(viewModelScope)
     }
 
     fun listScrolled(visibleItemCount: Int, lastVisibleItemPosition: Int, totalItemCount: Int) {
         if (visibleItemCount + lastVisibleItemPosition + VISIBLE_THRESHOLD >= totalItemCount) {
-            val immutableQuery = livePagingData?.value
-            if (immutableQuery != null) {
-                viewModelScope.launch {
-                    //repository.requestMore(immutableQuery)
-                }
-            }
         }
     }
 
-    var livePagingData : LiveData<PagingData<Repo>>? = null
+    var pagingDataFlow: Flow<PagingData<Repo>>? = null
 }
