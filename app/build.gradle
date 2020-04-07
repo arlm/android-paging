@@ -48,9 +48,19 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-extensions:$archComponentsVersion"
     implementation "androidx.lifecycle:lifecycle-runtime:$archComponentsVersion"
     implementation "androidx.room:room-runtime:$roomVersion"
-    implementation "androidx.paging:paging-runtime:$pagingVersion"
     kapt "androidx.lifecycle:lifecycle-compiler:$archComponentsVersion"
     kapt "androidx.room:room-compiler:$roomVersion"
+
+    implementation "androidx.paging:paging-runtime:$pagingVersion"
+
+    // optional, for RxJava2 bindings
+    // implementation "androidx.paging:paging-rxjava2:$pagingVersion"
+
+    // optional, for ListenableFuture bindings
+    // implementation "androidx.paging:paging-guava:$pagingVersion"
+
+    // optional, for using Paging components without Android dependency
+    implementation "androidx.paging:paging-common:$pagingVersion"
 
     // retrofit
     implementation "com.squareup.retrofit2:retrofit:$retrofitVersion"
