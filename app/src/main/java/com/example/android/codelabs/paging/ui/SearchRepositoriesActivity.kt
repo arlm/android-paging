@@ -20,7 +20,6 @@ import android.os.Bundle
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.observe
@@ -31,7 +30,6 @@ import androidx.recyclerview.widget.RecyclerView
 import androidx.recyclerview.widget.RecyclerView.OnScrollListener
 import com.example.android.codelabs.paging.Injection
 import com.example.android.codelabs.paging.databinding.ActivitySearchRepositoriesBinding
-import com.example.android.codelabs.paging.model.RepoSearchResult
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 @ExperimentalCoroutinesApi

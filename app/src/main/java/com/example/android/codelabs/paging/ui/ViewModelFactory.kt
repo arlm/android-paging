@@ -19,10 +19,12 @@ package com.example.android.codelabs.paging.ui
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 
 /**
  * Factory for ViewModels
  */
+@ExperimentalCoroutinesApi
 class ViewModelFactory(
         private val context: Context
 ) : ViewModelProvider.Factory {
