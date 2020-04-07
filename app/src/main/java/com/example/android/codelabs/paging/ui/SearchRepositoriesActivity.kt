@@ -17,14 +17,12 @@
 package com.example.android.codelabs.paging.ui
 
 import android.os.Bundle
-import android.util.Log
 import android.view.KeyEvent
 import android.view.View
 import android.view.inputmethod.EditorInfo
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.paging.PagingData
 import androidx.recyclerview.widget.DividerItemDecoration
 import com.example.android.codelabs.paging.Injection
 import com.example.android.codelabs.paging.R
@@ -41,7 +39,7 @@ class SearchRepositoriesActivity : AppCompatActivity() {
         setContentView(R.layout.activity_search_repositories)
 
         // get the view model
-        viewModel = ViewModelProvider(this, Injection.provideViewModelFactory())
+        viewModel = ViewModelProvider(this, Injection.provideViewModelFactory(this))
                 .get(SearchRepositoriesViewModel::class.java)
 
         // add dividers between RecyclerView's row items
@@ -49,9 +47,9 @@ class SearchRepositoriesActivity : AppCompatActivity() {
         list.addItemDecoration(decoration)
         setupScrollListener()
 
-        initAdapter()
         val query = savedInstanceState?.getString(LAST_SEARCH_QUERY) ?: DEFAULT_QUERY
         viewModel.searchRepo(query)
+        initAdapter()
         initSearch(query)
     }
 
@@ -61,15 +59,9 @@ class SearchRepositoriesActivity : AppCompatActivity() {
     }
 
     private fun initAdapter() {
-        list.adapter = adapter
-        viewModel.repos.observe(this, Observer<List<Repo>> {
-            Log.d("Activity", "list: ${it?.size}")
-            showEmptyList(it?.size == 0)
-            adapter.submitList(it)
-        })
-        viewModel.networkErrors.observe(this, Observer<String> {
-            Toast.makeText(this, "\uD83D\uDE28 Wooops $it", Toast.LENGTH_LONG).show()
-        })
+        viewModel.livePagingData?.observe(this) { pagingData ->
+            adapter.submitData(lifecycle, pagingData)
+        }
     }
 
     private fun initSearch(query: String) {
@@ -98,7 +90,7 @@ class SearchRepositoriesActivity : AppCompatActivity() {
             if (it.isNotEmpty()) {
                 list.scrollToPosition(0)
                 viewModel.searchRepo(it.toString())
-                adapter.submitList(null)
+                adapter.submitData(lifecycle, PagingData.empty())
             }
         }
     }

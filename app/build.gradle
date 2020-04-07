@@ -47,6 +47,8 @@ dependencies {
     // architecture components
     implementation "androidx.lifecycle:lifecycle-extensions:$archComponentsVersion"
     implementation "androidx.lifecycle:lifecycle-runtime:$archComponentsVersion"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$archComponentsVersion"
+    implementation "androidx.lifecycle:lifecycle-livedata-ktx:$archComponentsVersion"
     implementation "androidx.room:room-runtime:$roomVersion"
     kapt "androidx.lifecycle:lifecycle-compiler:$archComponentsVersion"
     kapt "androidx.room:room-compiler:$roomVersion"
