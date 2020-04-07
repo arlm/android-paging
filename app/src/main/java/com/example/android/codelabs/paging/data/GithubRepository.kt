@@ -17,79 +17,91 @@
 package com.example.android.codelabs.paging.data
 
 import android.util.Log
-import androidx.lifecycle.LiveData
-import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.Transformations
 import com.example.android.codelabs.paging.api.GithubService
-import com.example.android.codelabs.paging.api.searchRepos
+import com.example.android.codelabs.paging.api.IN_QUALIFIER
 import com.example.android.codelabs.paging.model.Repo
 import com.example.android.codelabs.paging.model.RepoSearchResult
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.channels.ConflatedBroadcastChannel
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.asFlow
+import java.io.IOException
+
+// GitHub page API is 1 based: https://developer.github.com/v3/#pagination
+private const val GITHUB_STARTING_PAGE_INDEX = 1
 
 /**
  * Repository class that works with local and remote data sources.
  */
+@FlowPreview
+@ExperimentalCoroutinesApi
 class GithubRepository(private val service: GithubService) {
 
-    // keep the list of responses
-    private val inMemoryCache = MutableLiveData<List<Repo>>()
+    // keep the list of all results received
+    private val inMemoryCache = mutableListOf<Repo>()
+
+    // keep channel of results. The channel allows us to broadcast updates so
+    // the subscriber will have the latest data
+    private val searchResults = ConflatedBroadcastChannel<RepoSearchResult>()
 
     // keep the last requested page. When the request is successful, increment the page number.
-    private var lastRequestedPage = 1
-
-    // LiveData of network errors.
-    private val networkErrors = MutableLiveData<String>()
+    private var lastRequestedPage = GITHUB_STARTING_PAGE_INDEX
 
     // avoid triggering multiple requests in the same time
     private var isRequestInProgress = false
 
     /**
-     * Search repositories whose names match the query.
+     * Search repositories whose names match the query, exposed as a stream of data that will emit
+     * every time we get more data from the network.
      */
-    fun search(query: String): RepoSearchResult {
+    suspend fun getSearchResultStream(query: String): Flow<RepoSearchResult> {
         Log.d("GithubRepository", "New query: $query")
         lastRequestedPage = 1
         requestAndSaveData(query)
 
-        // Get data from the in memory cache
-        val data = reposByName(query)
-
-        return RepoSearchResult(data, networkErrors)
+        return searchResults.asFlow()
     }
 
-    fun requestMore(query: String) {
+    suspend fun requestMore(query: String) {
         requestAndSaveData(query)
     }
 
-    private fun requestAndSaveData(query: String) {
+    private suspend fun requestAndSaveData(query: String) {
         if (isRequestInProgress) return
 
         isRequestInProgress = true
-        searchRepos(service, query, lastRequestedPage, NETWORK_PAGE_SIZE, { repos ->
-            // add the new result list to the existing list
-            val allResults = mutableListOf<Repo>()
-            inMemoryCache.value?.let { allResults.addAll(it) }
-            allResults.addAll(repos)
 
-            inMemoryCache.postValue(allResults)
-            lastRequestedPage++
-            isRequestInProgress = false
-        }, { error ->
-            networkErrors.postValue(error)
-            isRequestInProgress = false
-        })
+        val apiQuery = query + IN_QUALIFIER
+        val response = service.searchRepos(apiQuery, lastRequestedPage, NETWORK_PAGE_SIZE)
+        Log.d("GithubRepository", "response $response")
+        if (response.isSuccessful) {
+            if (response.isSuccessful) {
+                val repos = response.body()?.items ?: emptyList()
+                inMemoryCache.addAll(repos)
+                val reposByName = reposByName(query)
+                searchResults.offer(RepoSearchResult.Success(reposByName))
+            } else {
+                Log.d("GithubRepository", "fail to get data")
+                searchResults.offer(RepoSearchResult.Error(IOException(response.message()
+                        ?: "Unknown error")))
+            }
+        } else {
+            Log.d("GithubRepository", "fail to get data")
+            searchResults.offer(RepoSearchResult.Error(IOException(response.message()
+                    ?: "Unknown error")))
+        }
+        lastRequestedPage++
+        isRequestInProgress = false
     }
 
-    private fun reposByName(query: String): LiveData<List<Repo>> {
-        return Transformations.switchMap(inMemoryCache) { repos ->
-            // from the in memory cache select only the repos whose name or description matches
-            // the query. Then order the results.
-            val filteredList = repos.filter {
-                it.name.contains(query, true) ||
-                        (it.description != null && it.description.contains(query, true))
-            }.sortedWith(compareByDescending<Repo> { it.stars }.thenBy { it.name })
-
-            MutableLiveData(filteredList)
-        }
+    private fun reposByName(query: String): List<Repo> {
+        // from the in memory cache select only the repos whose name or description matches
+        // the query. Then order the results.
+        return inMemoryCache.filter {
+            it.name.contains(query, true) ||
+                    (it.description != null && it.description.contains(query, true))
+        }.sortedWith(compareByDescending<Repo> { it.stars }.thenBy { it.name })
     }
 
     companion object {
